@@ -1,0 +1,11 @@
+import yt_dlp
+
+def download_youtube(video_url, save_path):
+    ydl_opts = {
+        "outtmpl": f"{save_path}/%(title)s.%(ext)s",
+        "format": "bestvideo+bestaudio/best",
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_url])
+
+download_youtube("https://www.youtube.com/watch?v=iwNO4nbmkVs", "downloads")

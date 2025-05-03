@@ -1,0 +1,34 @@
+import streamlit as st
+
+# This file handles navigation between pages using session state
+# It should be imported at the top of both TranscribeYoutube.py and TranscriptChat.py
+
+def handle_navigation():
+    """
+    Handle navigation between pages using session state.
+    Returns True if navigation was handled, False otherwise.
+    """
+    # Initialize navigation state if not exists
+    if "navigation_target" not in st.session_state:
+        st.session_state.navigation_target = None
+    
+    # Only show debug information if there's a navigation target
+    if st.session_state.navigation_target:
+        st.write("Debug - Current navigation target:", st.session_state.navigation_target)
+        target = st.session_state.navigation_target
+        st.write(f"Debug - Navigating to page: {target}")
+        
+        # Clear the navigation target to prevent infinite loops
+        st.session_state.navigation_target = None
+        
+        # Navigate to the appropriate page
+        if target == "chat" or target == "TranscriptChat":
+            st.write("Debug - Switching to chat page")
+            st.switch_page("pages/TranscriptChat.py")
+            return True
+        elif target == "transcribe" or target == "TranscribeYoutube":
+            st.write("Debug - Switching to transcribe page")
+            st.switch_page("pages/TranscribeYoutube.py")
+            return True
+    
+    return False 

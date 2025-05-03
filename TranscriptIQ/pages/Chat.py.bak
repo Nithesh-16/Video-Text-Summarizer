@@ -1,0 +1,153 @@
+from dataclasses import dataclass
+from typing import Literal, List
+import streamlit as st
+from langchain_openai import ChatOpenAI
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
+import uuid
+import os
+
+@dataclass
+class Message:
+    """Class for keeping track of a chat message."""
+    origin: Literal["human", "ai"]
+    message: str
+
+def load_css():
+    try:
+        # Get the current file's directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        css_path = os.path.join(current_dir, "static", "styles.css")
+        
+        if os.path.exists(css_path):
+            with open(css_path, "r") as f:
+                css = f.read()
+                st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+        else:
+            # Fallback to basic styling if CSS file not found
+            st.markdown("""
+                <style>
+                .chat-row { display: flex; margin: 10px 0; }
+                .row-reverse { flex-direction: row-reverse; }
+                .chat-bubble { 
+                    padding: 10px 15px; 
+                    border-radius: 15px; 
+                    max-width: 70%; 
+                    margin: 0 10px;
+                }
+                .ai-bubble { background-color: #f0f0f0; }
+                .human-bubble { background-color: #007bff; color: white; }
+                </style>
+            """, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error loading CSS: {str(e)}")
+
+def get_session_id():
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
+    return st.session_state.session_id
+
+def initialize_session_state():
+    if "history" not in st.session_state:
+        st.session_state.history = ChatMessageHistory()
+    if "token_count" not in st.session_state:
+        st.session_state.token_count = 0
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+# Initialize LLM with error handling
+try:
+    llm = ChatOpenAI(
+        openai_api_key=st.secrets["openai_api_key"],
+        model_name="gpt-3.5-turbo"
+    )
+except Exception as e:
+    st.error(f"Error initializing ChatOpenAI: {str(e)}")
+    llm = None
+
+def get_session_history(session_id: str):
+    """Returns properly formatted LangChain chat history."""
+    return st.session_state.messages
+
+# Initialize conversation with error handling
+if "conversation" not in st.session_state and llm is not None:
+    try:
+        st.session_state.conversation = RunnableWithMessageHistory(
+            llm,
+            get_session_history=get_session_history,
+            input_messages_key="input",
+            history_messages_key="history"
+        )
+    except Exception as e:
+        st.error(f"Error initializing conversation: {str(e)}")
+
+def on_click_callback():
+    if llm is None:
+        st.error("Chat is not properly initialized. Please check your OpenAI API key.")
+        return
+        
+    session_id = get_session_id()
+    human_prompt = st.session_state.human_prompt.strip()
+    
+    if not human_prompt:
+        return
+    
+    try:
+        # Add user message to both history and messages
+        st.session_state.history.add_user_message(human_prompt)
+        st.session_state.messages.append(HumanMessage(content=human_prompt))
+
+        llm_response = st.session_state.conversation.invoke(
+            {"input": human_prompt},
+            config={"configurable": {"session_id": session_id}}
+        )
+
+        ai_response = llm_response.get("output", "Error: No response received.")
+        # Add AI message to both history and messages
+        st.session_state.history.add_ai_message(ai_response)
+        st.session_state.messages.append(AIMessage(content=ai_response))
+    except Exception as e:
+        st.error(f"Error in chat: {str(e)}")
+
+load_css()
+initialize_session_state()
+
+st.title("TranscriptAI 🧙‍♂️")
+
+# Add a back button at the top
+if st.button("← Back to Transcription", key="back_to_transcription"):
+    st.session_state.navigation_target = "transcription"
+    st.rerun()
+
+chat_placeholder = st.container()
+prompt_placeholder = st.form("chat-form")
+
+# Display chat history
+with chat_placeholder:
+    for message in st.session_state.messages:
+        try:
+            chat_content = message.content
+            chat_origin = "ai" if isinstance(message, AIMessage) else "human"
+
+            # Use emoji as fallback for images
+            icon = "🤖" if chat_origin == "ai" else "👤"
+            
+            div = f"""
+            <div class="chat-row {'' if chat_origin == 'ai' else 'row-reverse'}">
+                <div class="chat-icon">{icon}</div>
+                <div class="chat-bubble {'ai-bubble' if chat_origin == 'ai' else 'human-bubble'}">
+                    &#8203;{chat_content}
+                </div>
+            </div>
+            """
+            st.markdown(div, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error displaying message: {str(e)}")
+
+# Input form
+with prompt_placeholder:
+    st.markdown("**Chat**")
+    cols = st.columns((6, 1))
+    cols[0].text_input("Chat", value="", label_visibility="collapsed", key="human_prompt")
+    cols[1].form_submit_button("Send", type="primary", on_click=on_click_callback)
