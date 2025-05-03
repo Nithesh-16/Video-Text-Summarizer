@@ -8,51 +8,62 @@ import whisper
 import glob
 from yt_dlp import YoutubeDL
 import math
+import tempfile
+from pathlib import Path
 
 def get_video_info(video_url):
-    ydl_opts = {}
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_url, download=False)
-    
-    return {
-        "title": info.get("title", "Unknown Title"),
-        "views": info.get("view_count", 0),
-        "duration": info.get("duration", 0),
-        "author": info.get("uploader", "Unknown Author"),
-        "video_id": info.get("id", "N/A"),
-        "publish_date": info.get("upload_date", "Unknown Date"),
-        "thumbnail_url": info.get("thumbnail", ""),
-    }
+    try:
+        ydl_opts = {}
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=False)
+        
+        return {
+            "title": info.get("title", "Unknown Title"),
+            "views": info.get("view_count", 0),
+            "duration": info.get("duration", 0),
+            "author": info.get("uploader", "Unknown Author"),
+            "video_id": info.get("id", "N/A"),
+            "publish_date": info.get("upload_date", "Unknown Date"),
+            "thumbnail_url": info.get("thumbnail", ""),
+        }
+    except Exception as e:
+        print(f"Error getting video info: {str(e)}")
+        return None
 
 def current_directory(n):
-    """Removes older 'Folder_' directories if more than `n` exist."""
-    current_directory = os.getcwd()
-    directories = [name for name in os.listdir(current_directory) if os.path.isdir(os.path.join(current_directory, name))]
-    matching_directories = [name for name in directories if name.startswith("Folder_")]
-
-    if len(matching_directories) > n:
-        for directory in matching_directories:
-            directory_path = os.path.join(current_directory, directory)
-            shutil.rmtree(directory_path)
-            print(f"Removed directory: {directory_path}")
+    """Removes older temporary directories if more than `n` exist."""
+    temp_dir = Path(tempfile.gettempdir())
+    directories = [d for d in temp_dir.glob("Folder_*") if d.is_dir()]
+    
+    if len(directories) > n:
+        for directory in directories:
+            try:
+                shutil.rmtree(directory)
+                print(f"Removed directory: {directory}")
+            except Exception as e:
+                print(f"Error removing directory {directory}: {str(e)}")
     else:
         print("There are not enough matching directories to remove.")
 
 def create_folder_and_directories():
-    """Creates necessary folders for storing downloaded content."""
-    now = datetime.now()
-    current_folder = f"Folder_{now.strftime('%Y%m%d_%H%M%S')}"
-    os.makedirs(current_folder)
+    """Creates necessary folders for storing downloaded content in temp directory."""
+    try:
+        temp_dir = Path(tempfile.gettempdir())
+        now = datetime.now()
+        current_folder = temp_dir / f"Folder_{now.strftime('%Y%m%d_%H%M%S')}"
+        current_folder.mkdir(parents=True, exist_ok=True)
 
-    mp4_directory = os.path.join(current_folder, 'media', 'mp4')
-    mp3_directory = os.path.join(current_folder, 'media', 'mp3')
-    txt_directory = os.path.join(current_folder, 'media', 'txt')
+        mp4_directory = current_folder / 'media' / 'mp4'
+        mp3_directory = current_folder / 'media' / 'mp3'
+        txt_directory = current_folder / 'media' / 'txt'
 
-    os.makedirs(mp4_directory)
-    os.makedirs(mp3_directory)
-    os.makedirs(txt_directory)
+        for directory in [mp4_directory, mp3_directory, txt_directory]:
+            directory.mkdir(parents=True, exist_ok=True)
 
-    return mp4_directory, mp3_directory, txt_directory
+        return str(current_folder)
+    except Exception as e:
+        print(f"Error creating directories: {str(e)}")
+        return None
 
 def download_youtube(video_url, save_path):
     """Downloads a YouTube video as MP4 format."""
