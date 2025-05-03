@@ -4,20 +4,20 @@ import os
 import sys
 from pathlib import Path
 
-# Run setup script
-try:
-    import setup
-    setup.main()
-except Exception as e:
-    st.error(f"Setup failed: {str(e)}")
-
-# Set page config with proper static file configuration
+# Set page config must be the first Streamlit command
 st.set_page_config(
     layout="wide",
     page_title="TranscriptIQ",
     page_icon="🎯",
     initial_sidebar_state="expanded"
 )
+
+# Run setup script
+try:
+    import setup
+    setup.main()
+except Exception as e:
+    st.error(f"Setup failed: {str(e)}")
 
 # Configure static file serving
 if not os.path.exists('.streamlit'):
@@ -35,7 +35,6 @@ TranscriptIQ is a powerful tool that helps you extract valuable insights from Yo
 - **Transcribe YouTube Videos**: Convert video content to text with high accuracy
 - **Highlight Answers**: Get AI-powered answers to your questions
 - **Interactive AI Chat**: Ask questions and get detailed responses
-
 
 ### How to Use:
 1. Go to the **Transcribe YouTube Video** page to transcribe a video
