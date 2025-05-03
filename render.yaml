@@ -2,9 +2,13 @@ services:
   - type: web
     name: video-text-summarizer
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run TranscriptIQ/Home.py
+    buildCommand: |
+      pip install -r requirements.txt
+      python -c "import nltk; nltk.download('punkt')"
+    startCommand: streamlit run TranscriptIQ/Home.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
+      - key: PORT
+        value: 10000
     plan: free 
