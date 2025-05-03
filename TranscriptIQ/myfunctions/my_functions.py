@@ -60,10 +60,10 @@ def create_folder_and_directories():
         for directory in [mp4_directory, mp3_directory, txt_directory]:
             directory.mkdir(parents=True, exist_ok=True)
 
-        return str(current_folder)
+        return str(mp4_directory), str(mp3_directory), str(txt_directory)
     except Exception as e:
         print(f"Error creating directories: {str(e)}")
-        return None
+        return None, None, None
 
 def download_youtube(video_url, save_path):
     """Downloads a YouTube video as MP4 format."""

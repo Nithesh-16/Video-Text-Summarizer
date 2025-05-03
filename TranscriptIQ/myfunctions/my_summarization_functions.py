@@ -16,8 +16,13 @@ nltk.download('averaged_perceptron_tagger')
 nltk.download('maxent_ne_chunker')
 nltk.download('words')
 
-# ✅ Load the summarization pipeline once (global variable for efficiency)
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+# Initialize summarizer with a smaller model
+try:
+    # Using a smaller model that's more memory efficient
+    summarizer = pipeline("summarization", model="t5-small")
+except Exception as e:
+    print(f"Error loading summarizer: {str(e)}")
+    summarizer = None
 
 def summarize_with_huggingface(text, max_length=150, min_length=50):
     """Summarizes the given text using Hugging Face transformers.
@@ -27,8 +32,11 @@ def summarize_with_huggingface(text, max_length=150, min_length=50):
     if not text.strip():
         return "No content available for summarization."
     
-    # Maximum token length for BART model (approximately 1024 tokens)
-    MAX_CHUNK_LENGTH = 4000  # characters
+    if summarizer is None:
+        return "Summarization model not available. Please try again later."
+    
+    # Maximum token length for the model (approximately 512 tokens)
+    MAX_CHUNK_LENGTH = 2000  # characters
     
     # If text is short enough, summarize directly
     if len(text) <= MAX_CHUNK_LENGTH:
@@ -49,32 +57,30 @@ def summarize_with_huggingface(text, max_length=150, min_length=50):
         
         for sentence in sentences:
             if len(current_chunk) + len(sentence) <= MAX_CHUNK_LENGTH:
-                current_chunk += sentence + " "
+                current_chunk += " " + sentence
             else:
                 if current_chunk:
                     chunks.append(current_chunk.strip())
-                current_chunk = sentence + " "
+                current_chunk = sentence
         
-        # Add the last chunk if it's not empty
         if current_chunk:
             chunks.append(current_chunk.strip())
         
         # Summarize each chunk
-        chunk_summaries = []
+        summaries = []
         for chunk in chunks:
-            summary = summarizer(chunk, max_length=max_length, min_length=min_length, do_sample=False)
-            chunk_summaries.append(summary[0]['summary_text'])
+            try:
+                summary = summarizer(chunk, max_length=max_length, min_length=min_length, do_sample=False)
+                summaries.append(summary[0]['summary_text'])
+            except Exception as e:
+                print(f"Error summarizing chunk: {str(e)}")
+                continue
         
-        # Combine chunk summaries
-        combined_summary = " ".join(chunk_summaries)
-        
-        # If the combined summary is still too long, summarize it again
-        if len(combined_summary) > MAX_CHUNK_LENGTH:
-            final_summary = summarizer(combined_summary, max_length=max_length, min_length=min_length, do_sample=False)
-            return final_summary[0]['summary_text']
-        
-        return combined_summary
-    
+        # Combine summaries
+        if summaries:
+            return " ".join(summaries)
+        else:
+            return "Unable to generate summary due to errors."
     except Exception as e:
         return f"Error during chunked summarization: {str(e)}"
 

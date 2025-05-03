@@ -1,23 +1,14 @@
 import streamlit as st
 from io import BytesIO
 import os
-import sys
-from pathlib import Path
 
-# Set page config must be the first Streamlit command
+# Set page config with proper static file configuration
 st.set_page_config(
     layout="wide",
     page_title="TranscriptIQ",
     page_icon="🎯",
     initial_sidebar_state="expanded"
 )
-
-# Run setup script
-try:
-    import setup
-    setup.main()
-except Exception as e:
-    st.error(f"Setup failed: {str(e)}")
 
 # Configure static file serving
 if not os.path.exists('.streamlit'):
