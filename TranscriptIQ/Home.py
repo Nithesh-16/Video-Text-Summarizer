@@ -1,12 +1,18 @@
 import streamlit as st
 from io import BytesIO
+import os
 
-# Set page config
+# Set page config with proper static file configuration
 st.set_page_config(
     layout="wide",
     page_title="TranscriptIQ",
-    page_icon="🎯"
+    page_icon="🎯",
+    initial_sidebar_state="expanded"
 )
+
+# Configure static file serving
+if not os.path.exists('.streamlit'):
+    os.makedirs('.streamlit')
 
 # Main UI
 st.title("TranscriptIQ 🎯")
