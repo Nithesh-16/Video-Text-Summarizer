@@ -1,6 +1,15 @@
 import streamlit as st
 from io import BytesIO
 import os
+import sys
+from pathlib import Path
+
+# Run setup script
+try:
+    import setup
+    setup.main()
+except Exception as e:
+    st.error(f"Setup failed: {str(e)}")
 
 # Set page config with proper static file configuration
 st.set_page_config(
