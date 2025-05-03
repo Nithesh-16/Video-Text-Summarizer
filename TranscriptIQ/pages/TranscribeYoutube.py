@@ -13,6 +13,11 @@ from annotated_text import annotated_text
 from dataclasses import dataclass
 from typing import Literal
 import streamlit.components.v1 as components
+import nltk
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 from nltk import sent_tokenize
 import urllib.parse
 from moviepy.video.io.VideoFileClip import VideoFileClip
