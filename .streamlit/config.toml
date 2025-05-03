@@ -1,5 +1,5 @@
 [server]
-enableStaticServing = true
+enableStaticServing = false
 enableCORS = true
 enableXsrfProtection = true
 maxUploadSize = 200
